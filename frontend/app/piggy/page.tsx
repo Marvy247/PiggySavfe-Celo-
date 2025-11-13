@@ -12,15 +12,16 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Lock, Unlock, TrendingUp, Clock, DollarSign, Shield, Target, AlertTriangle, CheckCircle, PiggyBank, Calendar, Zap } from 'lucide-react';
+import { Lock, Unlock, TrendingUp, Clock, DollarSign, Shield, Target, AlertTriangle, CheckCircle, PiggyBank, Calendar, Zap, Euro } from 'lucide-react';
 
-const ESUSU_PIGGY_ADDRESS = '0x94cE3e8BA73477f6A3Ff3cd1B211B81c9c095125'; // Replace with deployed address
+const ESUSU_PIGGY_ADDRESS = '0xc338ad39C4d8dd803368C183479Ee35788f8F990'; // Deployed on Celo Sepolia
 
 export default function PiggyPage() {
   const { address, isConnected } = useAccount();
   const [amount, setAmount] = useState('');
   const [duration, setDuration] = useState('30');
   const [activeTab, setActiveTab] = useState('lock');
+  const [selectedToken, setSelectedToken] = useState('cUSD');
 
   const { writeContract, isPending, isSuccess, error } = useWriteContract();
 
@@ -28,6 +29,7 @@ export default function PiggyPage() {
   const mockLocks = [
     {
       id: 1,
+      token: 'cUSD',
       amount: '500',
       duration: 90,
       startDate: '2024-01-15',
@@ -38,6 +40,7 @@ export default function PiggyPage() {
     },
     {
       id: 2,
+      token: 'cEUR',
       amount: '200',
       duration: 30,
       startDate: '2024-01-01',
@@ -47,6 +50,18 @@ export default function PiggyPage() {
       progress: 100
     }
   ];
+
+  // Mento stablecoin addresses on Celo Alfajores
+  const stablecoins = [
+    { symbol: 'cUSD', address: '0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1', icon: DollarSign },
+    { symbol: 'cEUR', address: '0x10c892A6EC43a53E45D0B916B4b7D383B1b78C0F', icon: Euro },
+    { symbol: 'cCOP', address: '0xE4D517785D091D3c54818832dB6094bcc274894dF', icon: DollarSign }
+  ];
+
+  const getTokenAddress = () => {
+    const token = stablecoins.find(t => t.symbol === selectedToken);
+    return token ? token.address as `0x${string}` : stablecoins[0].address as `0x${string}`;
+  };
 
   const calculateRewards = (amount: string, duration: string): string => {
     const amt = parseFloat(amount) || 0;
@@ -63,6 +78,8 @@ export default function PiggyPage() {
       return;
     }
 
+    const tokenAddress = getTokenAddress();
+
     try {
       const durationSeconds = parseInt(duration) * 24 * 60 * 60; // Convert days to seconds
 
@@ -71,6 +88,7 @@ export default function PiggyPage() {
         abi: [
           {
             inputs: [
+              { name: '_token', type: 'address' },
               { name: '_amount', type: 'uint256' },
               { name: '_duration', type: 'uint256' }
             ],
@@ -81,7 +99,7 @@ export default function PiggyPage() {
           }
         ],
         functionName: 'lockFunds',
-        args: [parseEther(amount), BigInt(durationSeconds)]
+        args: [tokenAddress, parseEther(amount), BigInt(durationSeconds)]
       });
     } catch (error) {
       console.error('Error locking funds:', error);
@@ -190,11 +208,34 @@ export default function PiggyPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
+                    {/* Stablecoin Selector */}
+                    <div className="space-y-3">
+                      <Label className="text-base font-semibold flex items-center gap-2">
+                        <DollarSign className="h-4 w-4 text-green-600" />
+                        Select Stablecoin
+                      </Label>
+                      <Select value={selectedToken} onValueChange={setSelectedToken}>
+                        <SelectTrigger className="h-12 border-2 focus:border-purple-500 transition-colors">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {stablecoins.map((token) => (
+                            <SelectItem key={token.symbol} value={token.symbol}>
+                              <div className="flex items-center gap-2">
+                                <token.icon className="h-4 w-4" />
+                                <span className="font-medium">{token.symbol}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
                     {/* Amount Input */}
                     <div className="space-y-2">
                       <Label htmlFor="amount" className="text-base font-semibold flex items-center gap-2">
                         <DollarSign className="h-4 w-4 text-green-600" />
-                        Amount to Lock (cUSD)
+                        Amount to Lock ({selectedToken})
                       </Label>
                       <Input
                         id="amount"
@@ -205,7 +246,7 @@ export default function PiggyPage() {
                         className="text-lg h-12 border-2 focus:border-purple-500 transition-colors"
                       />
                       <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Minimum: 10 cUSD • Maximum: 10,000 cUSD
+                        Minimum: 10 {selectedToken} • Maximum: 10,000 {selectedToken}
                       </p>
                     </div>
 
@@ -396,7 +437,7 @@ export default function PiggyPage() {
                         </Badge>
                       </div>
                       <CardDescription>
-                        ${lock.amount} locked for {lock.duration} days
+                        {lock.token === 'cUSD' ? '$' : lock.token === 'cEUR' ? '€' : '₡'}{lock.amount} locked for {lock.duration} days
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">

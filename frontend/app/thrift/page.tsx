@@ -13,9 +13,9 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Plus, Minus, Clock, DollarSign, Shield, TrendingUp, CheckCircle, AlertCircle, Search, Filter } from 'lucide-react';
+import { Users, Plus, Minus, Clock, DollarSign, Shield, TrendingUp, CheckCircle, AlertCircle, Search, Filter, Euro } from 'lucide-react';
 
-const ESUSU_THRIFT_ADDRESS = '0x51F3c2Eb22BD3aaBcF5159dCDc8a1C3C7DDACaB7'; // Replace with deployed address
+const ESUSU_THRIFT_ADDRESS = '0x87439566539291BA11885ad1664c861c2fCD38E4'; // Deployed on Celo Sepolia
 
 export default function ThriftPage() {
   const { address, isConnected } = useAccount();
@@ -23,6 +23,7 @@ export default function ThriftPage() {
   const [contributionAmount, setContributionAmount] = useState('');
   const [campaignId, setCampaignId] = useState('');
   const [activeTab, setActiveTab] = useState('create');
+  const [selectedToken, setSelectedToken] = useState('cUSD');
 
   // Join tab states
   const [campaigns, setCampaigns] = useState<any[]>([]);
@@ -35,6 +36,18 @@ export default function ThriftPage() {
   const [maxContribution, setMaxContribution] = useState('');
   const [minParticipants, setMinParticipants] = useState('');
   const [maxParticipants, setMaxParticipants] = useState('');
+
+  // Mento stablecoin addresses on Celo Alfajores
+  const stablecoins = [
+    { symbol: 'cUSD', address: '0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1', icon: DollarSign },
+    { symbol: 'cEUR', address: '0x10c892A6EC43a53E45D0B916B4b7D383B1b78C0F', icon: Euro },
+    { symbol: 'cCOP', address: '0xE4D517785D091D3c54818832dB6094bcc274894dF', icon: DollarSign }
+  ];
+
+  const getTokenAddress = () => {
+    const token = stablecoins.find(t => t.symbol === selectedToken);
+    return token ? token.address as `0x${string}` : stablecoins[0].address as `0x${string}`;
+  };
 
   const { writeContract, isPending, isSuccess, error } = useWriteContract();
 
@@ -150,6 +163,8 @@ export default function ThriftPage() {
       return;
     }
 
+    const tokenAddress = getTokenAddress();
+
     try {
       writeContract({
         address: ESUSU_THRIFT_ADDRESS,
@@ -157,7 +172,8 @@ export default function ThriftPage() {
           {
             inputs: [
               { name: '_participants', type: 'address[]' },
-              { name: '_contributionAmount', type: 'uint256' }
+              { name: '_contributionAmount', type: 'uint256' },
+              { name: '_token', type: 'address' }
             ],
             name: 'createCampaign',
             outputs: [],
@@ -166,7 +182,7 @@ export default function ThriftPage() {
           }
         ],
         functionName: 'createCampaign',
-        args: [validParticipants as `0x${string}`[], parseEther(contributionAmount)]
+        args: [validParticipants as `0x${string}`[], parseEther(contributionAmount), tokenAddress]
       });
     } catch (error) {
       console.error('Error creating campaign:', error);
@@ -317,11 +333,34 @@ export default function ThriftPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                  {/* Stablecoin Selector */}
+                  <div className="space-y-3">
+                    <Label className="text-base font-semibold flex items-center gap-2">
+                      <DollarSign className="h-4 w-4 text-green-600" />
+                      Select Stablecoin
+                    </Label>
+                    <Select value={selectedToken} onValueChange={setSelectedToken}>
+                      <SelectTrigger className="h-12 border-2 focus:border-blue-500 transition-colors">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {stablecoins.map((token) => (
+                          <SelectItem key={token.symbol} value={token.symbol}>
+                            <div className="flex items-center gap-2">
+                              <token.icon className="h-4 w-4" />
+                              <span className="font-medium">{token.symbol}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   {/* Contribution Amount */}
                   <div className="space-y-2">
                     <Label htmlFor="contribution" className="text-base font-semibold flex items-center gap-2">
                       <DollarSign className="h-4 w-4 text-green-600" />
-                      Monthly Contribution (cUSD)
+                      Monthly Contribution ({selectedToken})
                     </Label>
                     <Input
                       id="contribution"

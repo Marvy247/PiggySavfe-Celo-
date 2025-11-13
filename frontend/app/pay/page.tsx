@@ -13,14 +13,15 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Receipt, Heart, Zap, Building, CheckCircle, AlertCircle, DollarSign, CreditCard, History, TrendingUp } from 'lucide-react';
+import { Receipt, Heart, Zap, Building, CheckCircle, AlertCircle, DollarSign, CreditCard, History, TrendingUp, Euro } from 'lucide-react';
 
-const ESUSU_PAY_ADDRESS = '0x05e2C54D348d9F0d8C40dF90cf15BFE8717Ee03f'; // Replace with deployed address
+const ESUSU_PAY_ADDRESS = '0x44c706e5aB987986719DfE903694977b9de56F80'; // Deployed on Celo Sepolia
 
 export default function PayPage() {
   const { address, isConnected } = useAccount();
   const [activeTab, setActiveTab] = useState('pay');
   const [paymentType, setPaymentType] = useState<'utility' | 'donation'>('utility');
+  const [selectedToken, setSelectedToken] = useState('cUSD');
   const [recipient, setRecipient] = useState('');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
@@ -33,6 +34,7 @@ export default function PayPage() {
     {
       id: 1,
       type: 'utility',
+      token: 'cUSD',
       amount: '75',
       recipient: 'Electricity Provider',
       description: 'Monthly electricity bill',
@@ -43,6 +45,7 @@ export default function PayPage() {
     {
       id: 2,
       type: 'donation',
+      token: 'cEUR',
       amount: '25',
       recipient: 'Community Fund',
       description: 'School supplies donation',
@@ -59,6 +62,18 @@ export default function PayPage() {
     { name: 'Gas Company', address: '0x4E9ce36E442e55EcD9025B9a6E0D88485d628A67', type: 'Gas' }
   ];
 
+  // Mento stablecoin addresses on Celo Alfajores
+  const stablecoins = [
+    { symbol: 'cUSD', address: '0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1', icon: DollarSign },
+    { symbol: 'cEUR', address: '0x10c892A6EC43a53E45D0B916B4b7D383B1b78C0F', icon: Euro },
+    { symbol: 'cCOP', address: '0xE4D517785D091D3c54818832dB6094bcc274894dF', icon: DollarSign }
+  ];
+
+  const getTokenAddress = () => {
+    const token = stablecoins.find(t => t.symbol === selectedToken);
+    return token ? token.address as `0x${string}` : stablecoins[0].address as `0x${string}`;
+  };
+
   const handlePayment = async () => {
     if (!isConnected) return;
 
@@ -72,6 +87,8 @@ export default function PayPage() {
       return;
     }
 
+    const tokenAddress = getTokenAddress();
+
     try {
       if (paymentType === 'utility') {
         writeContract({
@@ -79,6 +96,7 @@ export default function PayPage() {
           abi: [
             {
               inputs: [
+                { name: '_token', type: 'address' },
                 { name: '_provider', type: 'address' },
                 { name: '_amount', type: 'uint256' },
                 { name: '_description', type: 'string' }
@@ -90,7 +108,7 @@ export default function PayPage() {
             }
           ],
           functionName: 'payUtility',
-          args: [recipient as `0x${string}`, parseEther(amount), description]
+          args: [tokenAddress, recipient as `0x${string}`, parseEther(amount), description]
         });
       } else {
         writeContract({
@@ -98,6 +116,7 @@ export default function PayPage() {
           abi: [
             {
               inputs: [
+                { name: '_token', type: 'address' },
                 { name: '_recipient', type: 'address' },
                 { name: '_amount', type: 'uint256' },
                 { name: '_description', type: 'string' }
@@ -109,7 +128,7 @@ export default function PayPage() {
             }
           ],
           functionName: 'makeDonation',
-          args: [recipient as `0x${string}`, parseEther(amount), description]
+          args: [tokenAddress, recipient as `0x${string}`, parseEther(amount), description]
         });
       }
     } catch (error) {
@@ -241,6 +260,29 @@ export default function PayPage() {
                       </RadioGroup>
                     </div>
 
+                    {/* Stablecoin Selector */}
+                    <div className="space-y-3">
+                      <Label className="text-base font-semibold flex items-center gap-2">
+                        <DollarSign className="h-4 w-4 text-green-600" />
+                        Select Stablecoin
+                      </Label>
+                      <Select value={selectedToken} onValueChange={setSelectedToken}>
+                        <SelectTrigger className="h-12 border-2 focus:border-green-500 transition-colors">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {stablecoins.map((token) => (
+                            <SelectItem key={token.symbol} value={token.symbol}>
+                              <div className="flex items-center gap-2">
+                                <token.icon className="h-4 w-4" />
+                                <span className="font-medium">{token.symbol}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
                     {/* Utility Provider Selector */}
                     {paymentType === 'utility' && (
                       <div className="space-y-3">
@@ -293,7 +335,7 @@ export default function PayPage() {
                     <div className="space-y-2">
                       <Label htmlFor="amount" className="text-base font-semibold flex items-center gap-2">
                         <DollarSign className="h-4 w-4 text-green-600" />
-                        Amount (cUSD)
+                        Amount ({selectedToken})
                       </Label>
                       <Input
                         id="amount"
@@ -304,7 +346,7 @@ export default function PayPage() {
                         className="text-lg h-12 border-2 focus:border-green-500 transition-colors"
                       />
                       <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Minimum: 1 cUSD • Only pay Celo network fees
+                        Minimum: 1 {selectedToken} • Only pay Celo network fees
                       </p>
                     </div>
 
@@ -458,6 +500,9 @@ export default function PayPage() {
                             <Heart className="h-5 w-5 text-red-600" />
                           )}
                           {payment.type === 'utility' ? 'Utility Payment' : 'Donation'}
+                          <Badge variant="outline" className="text-xs ml-2">
+                            {payment.token}
+                          </Badge>
                         </CardTitle>
                         <Badge variant="outline" className="capitalize bg-green-50 text-green-700 border-green-200">
                           {payment.status}
@@ -470,7 +515,7 @@ export default function PayPage() {
                     <CardContent className="space-y-4">
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-gray-500 dark:text-gray-400">Amount</span>
-                        <span className="text-xl font-bold text-green-600">${payment.amount}</span>
+                        <span className="text-xl font-bold text-green-600">{payment.token === 'cUSD' ? '$' : payment.token === 'cEUR' ? '€' : '₡'}{payment.amount}</span>
                       </div>
 
                       <div className="space-y-2">

@@ -16,7 +16,7 @@ const celoSepolia = {
     symbol: 'CELO',
   },
   rpcUrls: {
-    default: { http: ['https://sepolia-forno.celo-testnet.org'] },
+    default: { http: ['https://forno.celo-sepolia.celo-testnet.org'] },
   },
   blockExplorers: {
     default: { name: 'Celo Explorer', url: 'https://sepolia.celoscan.io' },

@@ -1,6 +1,6 @@
 # PiggySavfe
 
-A decentralized savings platform built on Celo blockchain that enables users to participate in rotating savings groups (Esusu) and automated savings plans. Experience community-powered wealth building with bank-grade security through smart contracts.
+A decentralized savings platform built on Celo blockchain that enables users to participate in rotating savings groups (Piggy) and automated savings plans. Experience community-powered wealth building with bank-grade security through smart contracts.
 
 ## Features
 
