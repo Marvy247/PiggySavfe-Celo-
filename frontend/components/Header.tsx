@@ -1,5 +1,4 @@
 "use client";
-import { ConnectButton } from '@rainbow-me/rainbowkit';
 import Link from 'next/link';
 import { PiggyBank, Users, Lock, CreditCard, Menu, X, BarChart3 } from 'lucide-react';
 import { useState } from 'react';
@@ -64,7 +63,7 @@ export default function Header() {
           {/* Wallet Connect & Mobile Menu */}
           <div className="flex items-center space-x-3">
             <div className="block">
-              <ConnectButton />
+              <appkit-button />
             </div>
 
             {/* Mobile Menu Button - Hidden on very small screens */}
